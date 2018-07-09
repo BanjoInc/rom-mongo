@@ -24,6 +24,11 @@ module ROM
       end
 
       # @api public
+      def primary_key
+        :_id
+      end
+
+      # @api public
       def without(*fields)
         schema.project(*(schema.map(&:name) - fields)).(self)
       end
