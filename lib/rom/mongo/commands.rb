@@ -13,7 +13,8 @@ module ROM
         end
 
         def execute(document)
-          collection.insert(document)
+          result = collection.insert(document)
+          document[:_id] = result.inserted_id
           [document]
         end
       end
@@ -25,19 +26,23 @@ module ROM
           relation.dataset
         end
 
-        def execute(attributes)
-          collection.update_all('$set' => attributes)
-          collection.to_a
+        def execute(query, attributes)
+          view = collection.where(query)
+          view.update_all('$set' => attributes)
+          view.to_a
         end
       end
 
       class Delete < ROM::Commands::Delete
         adapter :mongo
 
-        def execute
-          removed = relation.to_a
-          relation.dataset.remove_all
-          removed
+        def collection
+          relation.dataset
+        end
+
+        def execute(query)
+          collection.where(query).remove_all
+          []
         end
       end
     end

@@ -20,7 +20,7 @@ RSpec.describe 'Mongo gateway' do
   describe 'with a repository' do
     let(:repo) do
       Class.new(ROM::Repository[:users]) do
-        commands :create, update: :by_pk
+        commands :create, :update
       end.new(container)
     end
 
@@ -34,8 +34,8 @@ RSpec.describe 'Mongo gateway' do
       expect(jane.email).to eql('jane@doe.org')
     end
 
-    it 'uses #by_pk for update commands' do
-      repo.update(jane_id, name: 'Jane Doe')
+    it 'updates the collection' do
+      repo.update({ _id: jane_id }, name: 'Jane Doe')
 
       expect(users.by_pk(jane_id).one!.name).to eql('Jane Doe')
     end
@@ -58,9 +58,7 @@ RSpec.describe 'Mongo gateway' do
       it 'inserts a document into collection' do
         id = BSON::ObjectId.new
 
-        result = commands.try do
-          commands.create.call(_id: id, name: 'joe', email: 'a.joe@doe.org')
-        end
+        result = commands.create.call(_id: id, name: 'joe', email: 'a.joe@doe.org')
 
         expect(result)
           .to match_array([{ _id: id, name: 'joe', email: 'a.joe@doe.org' }])
@@ -71,9 +69,7 @@ RSpec.describe 'Mongo gateway' do
       it 'updates a document in the collection' do
         jane = users.by_name('Jane').one!
 
-        result = commands.try do
-          commands.update.by_name('Jane').call(email: 'jane.doe@test.com')
-        end
+        result = commands.update.call({ name: 'Jane' }, email: 'jane.doe@test.com')
 
         expect(result).to match_array(
           [{ '_id' => BSON::ObjectId.from_string(jane._id),
@@ -88,13 +84,9 @@ RSpec.describe 'Mongo gateway' do
         jane = users.by_name('Jane').one!
         joe = users.by_name('Joe').one!
 
-        result = commands.delete.by_name('Joe').call
+        result = commands.delete.call(name: 'Joe')
 
-        expect(result.map(&:to_h)).to match_array(
-          [{ _id: BSON::ObjectId.from_string(joe._id),
-             name: 'Joe',
-             email: 'a.joe@doe.org' }]
-        )
+        expect(result).to match_array([])
 
         expect(users.all).to match_array([jane])
       end
